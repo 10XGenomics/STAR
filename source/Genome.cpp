@@ -149,6 +149,12 @@ void Genome::genomeLoad(){//allocate and load Genome
         errOut << "SOLUTION: \n" <<flush;     
         exitWithError(errOut.str(),std::cerr, P->inOut->logMain, EXIT_CODE_GENOME_FILES, *P);
     };
+
+    // TODO: use a destructor for this.
+    for (auto *p : P1->parArray) {
+        delete p;
+    }
+    delete P1;
     
     P->sjdbLength = P->sjdbOverhang==0 ? 0 : P->sjdbOverhang*2+1;
 
