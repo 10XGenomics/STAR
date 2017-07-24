@@ -9,7 +9,7 @@ void ReadAlignChunk::mapChunk() {//map one chunk. Input reads stream has to be s
     
     for (uint ii=0;ii<P->readNmates;ii++) {//clear eof and rewind the input streams
         RA->readInStream[ii]->clear();
-        RA->readInStream[ii]->seekg(0,ios::beg);
+        RA->readInStream[ii]->seekg(0);
     };
     
     if ( P->outSAMorder == "PairedKeepInputOrder" && P->runThreadN>1 ) {//open chunk file
@@ -28,7 +28,6 @@ void ReadAlignChunk::mapChunk() {//map one chunk. Input reads stream has to be s
             RA->iRead++;
 //         chunkOutBAMtotal=(uint) RA->outSAMstream->tellp();
             chunkOutBAMtotal+=RA->outBAMbytes;
-            chunkOutBAMtotal1+=RA->outBAMbytes1;
 //             uint ddd=(uint) RA->outSAMstream->tellp();            
         };
 
