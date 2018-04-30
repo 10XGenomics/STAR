@@ -21,7 +21,7 @@
 #include <errno.h>
 #include <limits>
 #include <stdint.h>
-#include <omp.h>
+//#include <omp.h>
 
 #include "VERSION"
 

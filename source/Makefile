@@ -13,15 +13,15 @@ CXX ?= g++
 
 # pre-defined flags
 LDFLAGS_shared := -pthread -Lhtslib -Bstatic -lhts -Bdynamic -lz -lrt
-LDFLAGS_static := -static -static-libgcc -pthread -Lhtslib -lhts -lz
+LDFLAGS_static := -pthread -Lhtslib -lhts -lz
 LDFLAGS_Mac :=-pthread -lz htslib/libhts.a
-LDFLAGS_Mac_static :=-pthread -lz -static-libgcc htslib/libhts.a
+LDFLAGS_Mac_static := -pthread -lz htslib/libhts.a
 LDFLAGS_gdb := $(LDFLAGS_shared)
 
 COMPTIMEPLACE := -D'COMPILATION_TIME_PLACE="$(shell echo `date` $(HOSTNAME):`pwd`)"'
 
-CXXFLAGS_common := -pipe -std=c++11 -Wall -Wextra -fopenmp $(COMPTIMEPLACE)
-CXXFLAGS_main := -O3 $(CXXFLAGS_common)
+CXXFLAGS_common := -D'COMPILE_FOR_MAC' -pipe -std=c++11 -Wall -Wextra  $(COMPTIMEPLACE)
+CXXFLAGS_main := -Og $(CXXFLAGS_common)
 CXXFLAGS_gdb :=  -O0 -g $(CXXFLAGS_common)
 
 CFLAGS := -O3 -pipe -Wall -Wextra $(CFLAGS)
@@ -36,7 +36,7 @@ OBJECTS = SharedMemory.o PackedArray.o SuffixArrayFuns.o STAR.o Parameters.o InO
 	OutSJ.o outputSJ.o blocksOverlap.o ThreadControl.o sysRemoveDir.o \
         ReadAlign_maxMappableLength2strands.o binarySearch2.o\
 	ReadAlign_outputAlignments.o  \
-	ReadAlign_outputTranscriptSAM.o ReadAlign_outputTranscriptSJ.o ReadAlign_outputTranscriptCIGARp.o ReadAlign_calcCIGAR.cpp \
+	ReadAlign_outputTranscriptSAM.o ReadAlign_outputTranscriptSJ.o ReadAlign_outputTranscriptCIGARp.o ReadAlign_calcCIGAR.o \
         ReadAlign_createExtendWindowsWithAlign.o ReadAlign_assignAlignToWindow.o ReadAlign_oneRead.o \
 	ReadAlign_stitchWindowSeeds.o ReadAlign_chimericDetection.o \
         stitchWindowAligns.o extendAlign.o stitchAlignToTranscript.o alignSmithWaterman.o \
@@ -45,10 +45,11 @@ OBJECTS = SharedMemory.o PackedArray.o SuffixArrayFuns.o STAR.o Parameters.o InO
 	TimeFunctions.o ErrorWarning.o loadGTF.o streamFuns.o stringSubstituteAll.o \
         Transcriptome.o Transcriptome_quantAlign.o ReadAlign_quantTranscriptome.o Quantifications.o Transcriptome_geneCountsAddAlign.o \
         sjdbLoadFromFiles.o sjdbLoadFromStream.o sjdbPrepare.o sjdbBuildIndex.o sjdbInsertJunctions.o mapThreadsSpawn.o \
-        Parameters_openReadsFiles.cpp Parameters_closeReadsFiles.cpp Parameters_readSAMheader.o \
+        Parameters_openReadsFiles.o Parameters_closeReadsFiles.o Parameters_readSAMheader.o \
         BAMoutput.o BAMfunctions.o ReadAlign_alignBAM.o BAMbinSortByCoordinate.o signalFromBAM.o bamRemoveDuplicates.o BAMbinSortUnmapped.o \
         bam_cat.o \
-        GlobalVariables.cpp
+        GlobalVariables.o
+
 
 SOURCES := $(wildcard *.cpp) $(wildcard *.c)
 
@@ -107,6 +108,11 @@ STAR : CXXFLAGS := $(CXXFLAGSextra) $(CXXFLAGS_main) $(CXXFLAGS)
 STAR : LDFLAGS := $(LDFLAGSextra) $(LDFLAGS_shared) $(LDFLAGS)
 STAR : Depend.list parametersDefault.xxd $(OBJECTS)
 	$(CXX) -o STAR $(CXXFLAGS) $(OBJECTS) $(LDFLAGS)
+
+libSTAR.a : CXXFLAGS := $(CXXFLAGSextra) $(CXXFLAGS_main) $(CXXFLAGS)
+libSTAR.a : LDFLAGS := $(LDFLAGSextra) $(LDFLAGS_static) $(LDFLAGS)
+libSTAR.a : Depend.list parametersDefault.xxd $(OBJECTS)
+	ar -csru libSTAR.a $(OBJECTS)
 
 POSIXSHARED : CXXFLAGS := $(CXXFLAGSextra) $(CXXFLAGS_main) -DPOSIX_SHARED_MEM $(CXXFLAGS)
 POSIXSHARED : LDFLAGS := $(LDFLAGSextra) $(LDFLAGS_shared) $(LDFLAGS)

@@ -248,10 +248,15 @@ void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters
 
 ///////// Default parameters
 
+    cerr << "prep defaults\n";
     #include "parametersDefault.xxd"
     string parString( (const char*) parametersDefault,parametersDefault_len);
     stringstream parStream (parString);
 
+    cerr << parString;
+    cerr << "\n\n";
+
+    cerr << "scan defaults\n";
     scanAllLines(parStream, 0, -1);
     for (uint ii=0; ii<parArray.size(); ii++) {
         if (parArray[ii]->inputLevel<0) {
@@ -263,6 +268,7 @@ void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters
 
 ///////// Initial parameters from Command Line
 
+    cerr << "scan params";
     commandLine="";
     string commandLineFile="";
 
