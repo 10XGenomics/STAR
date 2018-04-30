@@ -10,13 +10,13 @@ parametersFiles          -
 
 ### System
 sysShell            -
-    string: path to the shell binary, preferrably bash, e.g. /bin/bash.
+    string: path to the shell binary, preferably bash, e.g. /bin/bash.
                     - ... the default shell is executed, typically /bin/sh. This was reported to fail on some Ubuntu systems - then you need to specify path to bash.
 
 ### Run Parameters
-
 runMode                         alignReads
-    string: type of the run:
+    string: type of the run.
+
                                 alignReads             ... map reads
                                 genomeGenerate         ... generate genome files
                                 inputAlignmentsFromBAM ... input alignments from BAM. Presently only works with --outWigType and --bamRemoveDuplicates.
@@ -35,7 +35,6 @@ runRNGseed                      777
 
 
 ### Genome Parameters
-
 genomeDir                   ./GenomeDir/
     string: path to the directory where genome files are stored (for --runMode alignReads) or will be generated (for --runMode generateGenome)
 
@@ -104,12 +103,15 @@ sjdbInsertSave                          Basic
 					Basic ... only small junction / transcript files
 					All   ... all files including big Genome, SA and SAindex - this will create a complete genome directory
 
+### Variation parameters
+varVCFfile                              -
+    string: path to the VCF file that contains variation data.
+
 ### Input Files
 inputBAMfile                -
     string: path to BAM input file, to be used with --runMode inputAlignmentsFromBAM
 
 ### Read Parameters
-
 readFilesType               Fastx
     string: format of input read files
                             Fastx       ... FASTA or FASTQ
@@ -154,7 +156,6 @@ clip3pAfterAdapterNbases    0
 
 
 ### Limits
-
 limitGenomeGenerateRAM               31000000000
     int>0: maximum available RAM (bytes) for genome generation
 
@@ -235,10 +236,16 @@ outSAMstrandField                               None
 
 outSAMattributes                Standard
     string: a string of desired SAM attributes, in the order desired for the output SAM
-                                NH HI AS nM NM MD jM jI XS ch ... any combination in any order
-                                Standard   ... NH HI AS nM
-                                All        ... NH HI AS nM NM MD jM jI ch
-                                None       ... no attributes
+                                NH HI AS nM NM MD jM jI XS MC ch ... any combination in any order
+                                None        ... no attributes
+                                Standard    ... NH HI AS nM
+                                All         ... NH HI AS nM NM MD jM jI MC ch
+                                vA          ... variant allele
+                                vG          ... genomic coordiante of the variant overlapped by the read
+                                vW          ... 0/1 - alignment does not pass / passes WASP filtering. Requires --waspOutputMode SAMtag .
+                                Unsupported/undocumented:
+                                rB          ... alignment block read/genomic coordinates
+                                vR          ... read coordinate of the variant
 
 outSAMattrIHstart               1
     int>=0:                     start value for the IH attribute. 0 may be required by some downstream software, such as Cufflinks or StringTie.
@@ -300,16 +307,23 @@ outSAMmultNmax          -1
     int: max number of multiple alignments for a read that will be output to the SAM/BAM files.
                         -1 ... all alignments (up to --outFilterMultimapNmax) will be output
 
+outSAMtlen              1
+    int: calculation method for the TLEN field in the SAM/BAM files
+                        1 ... leftmost base of the (+)strand mate to rightmost base of the (-)mate. (+)sign for the (+)strand mate
+                        2 ... leftmost base of any mate to rightmost base of any mate. (+)sign for the mate with the leftmost base. This is different from 1 for overlapping mates with protruding ends
+
 outBAMcompression       1
     int: -1 to 10  BAM compression level, -1=default compression (6?), 0=no compression, 10=maximum compression
 
 outBAMsortingThreadN    0
     int: >=0: number of threads for BAM sorting. 0 will default to min(6,--runThreadN).
 
-### BAM processing
+outBAMsortingBinsN      50
+    int: >0:  number of genome bins fo coordinate-sorting
 
+### BAM processing
 bamRemoveDuplicatesType  -
-    string: mark duplicates in the BAM file, for now only works with (i) sorted BAM feeded with inputBAMfile, and (ii) for paired-end alignments only
+    string: mark duplicates in the BAM file, for now only works with (i) sorted BAM fed with inputBAMfile, and (ii) for paired-end alignments only
                         -                       ... no duplicate removal/marking
                         UniqueIdentical         ... mark all multimappers, and duplicate unique mappers. The coordinates, FLAG, CIGAR must be identical
                         UniqueIdenticalNotMulti  ... mark duplicate unique mappers but not multimappers.
@@ -358,23 +372,23 @@ outFilterMismatchNmax           10
     int: alignment will be output only if it has no more mismatches than this value.
 
 outFilterMismatchNoverLmax      0.3
-    float: alignment will be output only if its ratio of mismatches to *mapped* length is less than or equal to this value.
+    real: alignment will be output only if its ratio of mismatches to *mapped* length is less than or equal to this value.
 
 outFilterMismatchNoverReadLmax  1.0
-    float: alignment will be output only if its ratio of mismatches to *read* length is less than or equal to this value.
+    real: alignment will be output only if its ratio of mismatches to *read* length is less than or equal to this value.
 
 
 outFilterScoreMin               0
     int: alignment will be output only if its score is higher than or equal to this value.
 
 outFilterScoreMinOverLread      0.66
-    float: same as outFilterScoreMin, but  normalized to read length (sum of mates' lengths for paired-end reads)
+    real: same as outFilterScoreMin, but  normalized to read length (sum of mates' lengths for paired-end reads)
 
 outFilterMatchNmin              0
     int: alignment will be output only if the number of matched bases is higher than or equal to this value.
 
 outFilterMatchNminOverLread     0.66
-    float: sam as outFilterMatchNmin, but normalized to the read length (sum of mates' lengths for paired-end reads).
+    real: sam as outFilterMatchNmin, but normalized to the read length (sum of mates' lengths for paired-end reads).
 
 outFilterIntronMotifs           None
     string: filter alignment using their motifs
@@ -454,7 +468,7 @@ seedSearchStartLmax             50
     int>0: defines the search start point through the read - the read is split into pieces no longer than this value
 
 seedSearchStartLmaxOverLread    1.0
-    float: seedSearchStartLmax normalized to read length (sum of mates' lengths for paired-end reads)
+    real: seedSearchStartLmax normalized to read length (sum of mates' lengths for paired-end reads)
 
 seedSearchLmax       0
     int>=0: defines the maximum length of the seeds, if =0 max seed lengthis infinite
@@ -497,7 +511,7 @@ alignSplicedMateMapLmin     0
     int>0: minimum mapped length for a read mate that is spliced
 
 alignSplicedMateMapLminOverLmate 0.66
-    float>0: alignSplicedMateMapLmin normalized to mate length
+    real>0: alignSplicedMateMapLmin normalized to mate length
 
 alignWindowsPerReadNmax     10000
     int>0: max number of windows per read
@@ -522,11 +536,22 @@ alignEndsProtrude       0    ConcordantPair
                                             ConcordantPair ... report alignments with non-zero protrusion as concordant pairs
                                             DiscordantPair ... report alignments with non-zero protrusion as discordant pairs
 
-
-alignSoftClipAtReferenceEnds Yes
+alignSoftClipAtReferenceEnds    Yes
     string: allow the soft-clipping of the alignments past the end of the chromosomes
-                        Yes ... allow
-                        No  ... prohibit, useful for compatibility with Cufflinks
+                                Yes ... allow
+                                No  ... prohibit, useful for compatibility with Cufflinks
+
+alignInsertionFlush     None
+    string: how to flush ambiguous insertion positions
+                        None    ... insertions are not flushed
+                        Right   ... insertions are flushed to the right
+
+### Paired-End reads: presently unsupported/undocumented
+peOverlapNbasesMin          0
+    int>=0:             minimum number of overlap bases to trigger mates merging and realignment
+
+peOverlapMMp                0.1
+    real, >=0 & <1:     maximum proportion of mismatched bases in the overlap area
 
 ### Windows, Anchors, Binning
 
@@ -543,19 +568,18 @@ winFlankNbins                   4
     int>0: log2(winFlank), where win Flank is the size of the left and right flanking regions for each window
 
 winReadCoverageRelativeMin      0.5
-    float>=0: minimum relative coverage of the read sequence by the seeds in a window, for STARlong algorithm only.
+    real>=0: minimum relative coverage of the read sequence by the seeds in a window, for STARlong algorithm only.
 
 winReadCoverageBasesMin      0
     int>0: minimum number of bases covered by the seeds in a window , for STARlong algorithm only.
 
 ### Chimeric Alignments
-chimOutType                 SeparateSAMold
+chimOutType                 Junctions
     string(s): type of chimeric output
-                            1st word:
+                            Junctions       ... Chimeric.out.junction
                             SeparateSAMold  ... output old SAM into separate Chimeric.out.sam file
                             WithinBAM       ... output into main aligned BAM files (Aligned.*.bam)
-                            2nd word:
-                            WithinBAM HardClip  ... hard-clipping in the CIGAR for supplemental chimeric alignments (defaultif no 2nd word is present)
+                            WithinBAM HardClip  ... (default) hard-clipping in the CIGAR for supplemental chimeric alignments (defaultif no 2nd word is present)
                             WithinBAM SoftClip  ... soft-clipping in the CIGAR for supplemental chimeric alignments
 
 chimSegmentMin              0
@@ -565,7 +589,7 @@ chimScoreMin                0
     int>=0: minimum total (summed) score of the chimeric segments
 
 chimScoreDropMax            20
-    int>=0: max drop (difference) of chimeric score (the sum of scores of all chimeric segements) from the read length
+    int>=0: max drop (difference) of chimeric score (the sum of scores of all chimeric segments) from the read length
 
 chimScoreSeparation         10
     int>=0: minimum difference (separation) between the best chimeric score and the next one
@@ -586,6 +610,16 @@ chimFilter                  banGenomicN
 
 chimMainSegmentMultNmax        10
     int>=1: maximum number of multi-alignments for the main chimeric segment. =1 will prohibit multimapping main segments.
+
+chimMultimapNmax                    0
+    int>=0: maximum number of chimeric multi-alignments
+                                0 ... use the old scheme for chimeric detection which only considered unique alignments
+
+chimMultimapScoreRange          1
+    int>=0: the score range for multi-mapping chimeras below the best chimeric score. Only works with --chimMultimapNmax > 1
+
+chimNonchimScoreDropMin         20
+    int>=0: to trigger chimeric detection, the drop in the best non-chimeric alignment score with respect to the read lenght has to be smaller than this value
 
 ### Quantification of Annotations
 quantMode                   -
@@ -610,4 +644,11 @@ twopassMode                 None
 
 twopass1readsN              -1
     int: number of reads to process for the 1st step. Use very large number (or default -1) to map all reads in the first step.
+
+
+### WASP parameters
+waspOutputMode              None
+    string: WASP allele-specific output type. This is re-implemenation of the original WASP mappability filtering by Bryce van de Geijn, Graham McVicker, Yoav Gilad & Jonathan K Pritchard. Please cite the original WASP paper: Nature Methods 12, 1061–1063 (2015), https://www.nature.com/articles/nmeth.3582 .
+                            SAMtag      ... add WASP tags to the alignments that pass WASP filtering
+
 

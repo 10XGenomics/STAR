@@ -66,6 +66,9 @@ typedef uint8_t uint8;
 #define intSWscore int
 #define intScore int
 
+#define scoreMatch 1
+
+
 //cleaned
 //output
 #define BAMoutput_oneAlignMaxBytes 100000
@@ -82,8 +85,13 @@ typedef uint8_t uint8;
 #define ATTR_jI 8
 #define ATTR_XS 9
 #define ATTR_RG 10
-#define ATTR_ch 11
-#define ATTR_MC 12
+#define ATTR_vG 11
+#define ATTR_vA 12
+#define ATTR_vW 13
+#define ATTR_ch 14
+#define ATTR_MC 15
+#define ATTR_rB 16
+
 
 //BAM definitions
 #define BAM_CIGAR_MaxSize 10000

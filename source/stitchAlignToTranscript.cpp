@@ -5,30 +5,31 @@
 #include "binarySearch2.h"
 // #include "stitchGapIndel.cpp"
 
-intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBstart, uint L, uint iFragB, uint sjAB, Parameters* P, char* R, char* Q, char* G,  Transcript *trA, const uint outFilterMismatchNmaxTotal) {
-    //stitch together A and B, extend in the gap, returns max score
-    //Q is assumed modified already
 
+intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBstart, uint L, uint iFragB, uint sjAB, Parameters& P, char* R, Genome &mapGen, Transcript *trA, const uint outFilterMismatchNmaxTotal) {
+    //stitch together A and B, extend in the gap, returns max score
+
+    char *G=mapGen.G;
     int Score=0;
 //     int score2;
 
     if (sjAB!=((uint) -1) && trA->exons[trA->nExons-1][EX_sjA]==sjAB \
             && trA->exons[trA->nExons-1][EX_iFrag]==iFragB && rBstart==rAend+1 && gAend+1<gBstart ) {//simple stitching if junction belongs to a database
-        if (P->sjdbMotif[sjAB]==0 && (L<=P->sjdbShiftRight[sjAB] || trA->exons[trA->nExons-1][EX_L]<=P->sjdbShiftLeft[sjAB]) ) {
+        if (mapGen.sjdbMotif[sjAB]==0 && (L<=mapGen.sjdbShiftRight[sjAB] || trA->exons[trA->nExons-1][EX_L]<=mapGen.sjdbShiftLeft[sjAB]) ) {
             return -1000006; //too large repeats around non-canonical junction
         };
         trA->exons[trA->nExons][EX_L] = L; //new exon length
         trA->exons[trA->nExons][EX_R] = rBstart; //new exon r-start
         trA->exons[trA->nExons][EX_G] = gBstart; //new exon g-start
-        trA->canonSJ[trA->nExons-1]=P->sjdbMotif[sjAB]; //mark sj-db
-        trA->shiftSJ[trA->nExons-1][0]=P->sjdbShiftLeft[sjAB];
-        trA->shiftSJ[trA->nExons-1][1]=P->sjdbShiftRight[sjAB];
+        trA->canonSJ[trA->nExons-1]=mapGen.sjdbMotif[sjAB]; //mark sj-db
+        trA->shiftSJ[trA->nExons-1][0]=mapGen.sjdbShiftLeft[sjAB];
+        trA->shiftSJ[trA->nExons-1][1]=mapGen.sjdbShiftRight[sjAB];
         trA->sjAnnot[trA->nExons-1]=1;
-        trA->sjStr[trA->nExons-1]=P->sjdbStrand[sjAB];;
+        trA->sjStr[trA->nExons-1]=mapGen.sjdbStrand[sjAB];;
         trA->nExons++;
         trA->nMatch+=L;
-        for (uint ii=rBstart;ii<rBstart+L;ii++) Score+=int(Q[ii]); //add QS for mapped portions
-        Score+=P->sjdbScore;
+        for (uint ii=rBstart;ii<rBstart+L;ii++) Score+=scoreMatch; //add QS for mapped portions
+        Score+=P.pGe.sjdbScore;
     } else {//general stitching
         trA->sjAnnot[trA->nExons-1]=0;
         trA->sjStr[trA->nExons-1]=0;
@@ -57,7 +58,7 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                 L=rBend-rBstart+1;
             };
 
-            for (uint ii=rBstart;ii<=rBend;ii++) Score+=int(Q[ii]); //add QS for mapped portions
+            for (uint ii=rBstart;ii<=rBend;ii++) Score+=scoreMatch; //add QS for mapped portions
 
             int gGap=gBstart-gAend-1; //could be < 0 for insertions
             int rGap=rBstart-rAend-1;//>0 always since we removed overlap
@@ -80,14 +81,11 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                 for (int ii=1;ii<=rGap;ii++) {
                     if (G[gAend+ii]<4 && R[rAend+ii]<4) {//only score genome bases that are not Ns
                         if ( R[rAend+ii]==G[gAend+ii] ) {
-                            Score+=int(Q[rAend+ii]);
+                            Score+=scoreMatch;
                             nMatch++;
-    //                         if (Q[rAend+ii]>=P->Qgood) nMatchGood++;
                         } else {
-                            Score-=int(Q[rAend+ii]);
-//                             trA->rMM[trA->nMM + nMM] = rAend+ii;
+                            Score-=scoreMatch;
                             nMM++;
-    //                         if (Q[rAend+ii]>=P->Qgood) nMMgood++;
                         };
                     };
                 };
@@ -97,7 +95,7 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                 nDel=1;
                 Del=gGap-rGap; //gGap>0 here
 
-                if (Del>P->alignIntronMax && P->alignIntronMax>0) {
+                if (Del>P.alignIntronMax && P.alignIntronMax>0) {
                     return -1000003; //large gaps not allowed
                 };
 
@@ -105,22 +103,22 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                 int jR1=1; //junction location in R-space
                 do { // 1. move left, until the score for MM is less than canonical advantage
                     jR1--;
-                    if ( R[rAend+jR1]!=G[gBstart1+jR1] && G[gBstart1+jR1]<4 && R[rAend+jR1]==G[gAend+jR1]) Score1 -= int(Q[rAend+jR1]);
-                }  while ( Score1+P->scoreStitchSJshift >= 0 && int(trA->exons[trA->nExons-1][EX_L]) + jR1 > 1);//>=P->alignSJoverhangMin); //also check that we are still within the exon
+                    if ( R[rAend+jR1]!=G[gBstart1+jR1] && G[gBstart1+jR1]<4 && R[rAend+jR1]==G[gAend+jR1]) Score1 -= scoreMatch;
+                }  while ( Score1+P.scoreStitchSJshift >= 0 && int(trA->exons[trA->nExons-1][EX_L]) + jR1 > 1);//>=P.alignSJoverhangMin); //also check that we are still within the exon
 
                 int maxScore2=-999999;
                 Score1=0;
                 int jPen=0;
                 do { // 2. scan to the right to find the best junction locus
                     // ?TODO? if genome base is N, how to score?
-                    if  ( R[rAend+jR1]==G[gAend+jR1] && R[rAend+jR1]!=G[gBstart1+jR1] )  Score1+=int(Q[rAend+jR1]);
-                    if  ( R[rAend+jR1]!=G[gAend+jR1] && R[rAend+jR1]==G[gBstart1+jR1] )  Score1-=int(Q[rAend+jR1]);
+                    if  ( R[rAend+jR1]==G[gAend+jR1] && R[rAend+jR1]!=G[gBstart1+jR1] )  Score1+=scoreMatch;
+                    if  ( R[rAend+jR1]!=G[gAend+jR1] && R[rAend+jR1]==G[gBstart1+jR1] )  Score1-=scoreMatch;
 
                     int jCan1=-1; //this marks Deletion
                     int jPen1=0;
                     int Score2=Score1;
 
-                    if (Del>=P->alignIntronMin) {//only check intron motif for large gaps= non-Dels
+                    if (Del>=P.alignIntronMin) {//only check intron motif for large gaps= non-Dels
                         //check if the intron is canonical, or semi-canonical
                         if ( G[gAend+jR1+1]==2 && G[gAend+jR1+2]==3 && G[gBstart1+jR1-1]==0 && G[gBstart1+jR1]==2 ) {//GTAG
                             jCan1=1;
@@ -128,19 +126,19 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                             jCan1=2;
                         } else if ( G[gAend+jR1+1]==2 && G[gAend+jR1+2]==1 && G[gBstart1+jR1-1]==0 && G[gBstart1+jR1]==2 ) {//GCAG
                             jCan1=3;
-                            jPen1=P->scoreGapGCAG;
+                            jPen1=P.scoreGapGCAG;
                         } else if ( G[gAend+jR1+1]==1 && G[gAend+jR1+2]==3 && G[gBstart1+jR1-1]==2 && G[gBstart1+jR1]==1 ) {//CTGC
                             jCan1=4;
-                            jPen1=P->scoreGapGCAG;
+                            jPen1=P.scoreGapGCAG;
                         } else if ( G[gAend+jR1+1]==0 && G[gAend+jR1+2]==3 && G[gBstart1+jR1-1]==0 && G[gBstart1+jR1]==1 ) {//ATAC
                             jCan1=5;
-                            jPen1=P->scoreGapATAC;
+                            jPen1=P.scoreGapATAC;
                         } else if ( G[gAend+jR1+1]==2 && G[gAend+jR1+2]==3 && G[gBstart1+jR1-1]==0 && G[gBstart1+jR1]==3 ) {//GTAT
                             jCan1=6;
-                            jPen1=P->scoreGapATAC;
+                            jPen1=P.scoreGapATAC;
                         } else {
                             jCan1=0;
-                            jPen1=P->scoreGapNoncan;
+                            jPen1=P.scoreGapNoncan;
                         };
 
                         Score2 += jPen1;
@@ -153,7 +151,7 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                         jPen=jPen1;
                     };
                         jR1++;
-                } while ( jR1 < int(rBend) - int(rAend) );// - int(P->alignSJoverhangMin) );//TODO: do not need to search the full B-transcript, can stop as soon as Score goes down by more than
+                } while ( jR1 < int(rBend) - int(rAend) );// - int(P.alignSJoverhangMin) );//TODO: do not need to search the full B-transcript, can stop as soon as Score goes down by more than
 
                 //repeat length: go back and forth around jR to find repeat length
                 uint jjL=0,jjR=0;
@@ -161,7 +159,7 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                     jjL++;
                 };
 
-                while ( gAend+jjR+jR+1<P->nGenome && G[gAend+jjR+jR+1]==G[gBstart1+jjR+jR+1] && G[gAend+jjR+jR+1]<4 && jjR<=MAX_SJ_REPEAT_SEARCH) {//go forward
+                while ( gAend+jjR+jR+1<mapGen.nGenome && G[gAend+jjR+jR+1]==G[gBstart1+jjR+jR+1] && G[gAend+jjR+jR+1]<4 && jjR<=MAX_SJ_REPEAT_SEARCH) {//go forward
                     jjR++;
                 };
 
@@ -179,14 +177,14 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                     if (G[g1]<4 && R[rAend+ii]<4) {//only penalize non-N bases
                         if ( R[rAend+ii]==G[g1] ) {
                             if (ii>=1 && ii <=rGap) {//only add +score and matches within the gap
-                                Score+=int(Q[rAend+ii]);
+                                Score+=scoreMatch;
                                 nMatch++;
                             };
                         } else {//add -score and MM for all bases
-                            Score-=int(Q[rAend+ii]);
+                            Score-=scoreMatch;
                             nMM++;
                             if (ii<1 || ii>rGap) {//subtract previuosly presumed matches
-                                Score-=int(Q[rAend+ii]);
+                                Score-=scoreMatch;
                                 nMatch--;
 //                                 if (ii<=jR) nMM--;
                             };
@@ -195,14 +193,14 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                 };
 
                 //score the gap
-                if (P->sjdbN>0) {//check if the junction is annotated
+                if (mapGen.sjdbN>0) {//check if the junction is annotated
                         uint jS=gAend+jR+1, jE=gBstart1+jR;//intron start/end
-                        int sjdbInd=binarySearch2(jS,jE,P->sjdbStart,P->sjdbEnd,P->sjdbN);
+                        int sjdbInd=binarySearch2(jS,jE,mapGen.sjdbStart,mapGen.sjdbEnd,mapGen.sjdbN);
                         if (sjdbInd<0) {
-                            if (Del>=P->alignIntronMin) {
-                                Score += P->scoreGap + jPen; //genome gap penalty + non-canonical penalty
+                            if (Del>=P.alignIntronMin) {
+                                Score += P.scoreGap + jPen; //genome gap penalty + non-canonical penalty
                             } else {//deletion
-                                Score += Del*P->scoreDelBase + P->scoreDelOpen;
+                                Score += Del*P.scoreDelBase + P.scoreDelOpen;
                                 jCan=-1;
                                 trA->sjAnnot[trA->nExons-1]=0;
 //                                 jjR-=jjL;
@@ -212,24 +210,24 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
 //                                 trA->shiftSJ[trA->nExons-1][1]=jjR;
                             };
                         } else {//annotated
-                            jCan=P->sjdbMotif[sjdbInd];
-                            if (P->sjdbMotif[sjdbInd]==0) {//shift to match annotations
-                                if (L<=P->sjdbShiftLeft[sjdbInd] || trA->exons[trA->nExons-1][EX_L]<=P->sjdbShiftLeft[sjdbInd]) {
+                            jCan=mapGen.sjdbMotif[sjdbInd];
+                            if (mapGen.sjdbMotif[sjdbInd]==0) {//shift to match annotations
+                                if (L<=mapGen.sjdbShiftLeft[sjdbInd] || trA->exons[trA->nExons-1][EX_L]<=mapGen.sjdbShiftLeft[sjdbInd]) {
                                     return -1000006;
                                 };
-                                jR += (int) P->sjdbShiftLeft[sjdbInd];
-                                jjL=P->sjdbShiftLeft[sjdbInd];
-                                jjR=P->sjdbShiftRight[sjdbInd];
+                                jR += (int) mapGen.sjdbShiftLeft[sjdbInd];
+                                jjL=mapGen.sjdbShiftLeft[sjdbInd];
+                                jjR=mapGen.sjdbShiftRight[sjdbInd];
                             };
                             trA->sjAnnot[trA->nExons-1]=1;
-                            trA->sjStr[trA->nExons-1]=P->sjdbStrand[sjdbInd];
-                            Score += P->sjdbScore;
+                            trA->sjStr[trA->nExons-1]=mapGen.sjdbStrand[sjdbInd];
+                            Score += P.pGe.sjdbScore;
                         };
                 } else {//no annotation
-                    if (Del>=P->alignIntronMin) {//junction, not short deletion
-                        Score += P->scoreGap + jPen;
+                    if (Del>=P.alignIntronMin) {//junction, not short deletion
+                        Score += P.scoreGap + jPen;
                     } else {
-                        Score += Del*P->scoreDelBase + P->scoreDelOpen;
+                        Score += Del*P.scoreDelBase + P.scoreDelOpen;
                         jCan=-1;
                         trA->sjAnnot[trA->nExons-1]=0;
                     };
@@ -252,42 +250,50 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
                 nIns=1;
                 if (gGap==0) {//simple insertion, no need to stitch
                     jR=0;
-                } else if (gGap<0) {//reduce the score
-
+                } else if (gGap<0) {//overlapping seeds: reduce the score
                     jR=0;
-                    for (int ii=0; ii<-gGap; ii++) Score -= int(Q[rBstart+ii]);
-
+                    for (int ii=0; ii<-gGap; ii++) {
+                        Score -= scoreMatch;
+                    };
                 } else {//stitch: define the exon boundary jR
                     int Score1=0; int maxScore1=0;
                     for (int jR1=1;jR1<=gGap;jR1++) {//scan to the right to find the best score
 
                         if (G[gAend+jR1]<4) {//only penalize goog genome bases
-                            Score1+=( R[rAend+jR1]==G[gAend+jR1] ) ? int(Q[rAend+jR1]):-int(Q[rAend+jR1]);
-                            Score1+=( R[rAend+Ins+jR1]==G[gAend+jR1] ) ? -int(Q[rAend+Ins+jR1]):+int(Q[rAend+Ins+jR1]);
+                            Score1+=( R[rAend+jR1]==G[gAend+jR1] ) ? scoreMatch:-scoreMatch;
+                            Score1+=( R[rAend+Ins+jR1]==G[gAend+jR1] ) ? -scoreMatch:+scoreMatch;
                         };
 
-                        if (Score1>maxScore1) {
+                        if (Score1>maxScore1 || (Score1==maxScore1 && P.alignInsertionFlush.flushRight)) {//equal sign (>=) flushes insertions to the right
                             maxScore1=Score1;
                             jR=jR1;
                         };
                     };
-
-
                     for (int ii=1;ii<=gGap;ii++) {//score donor and acceptor
                         uint r1=rAend+ii+(ii<=jR ? 0:Ins);
                         if (G[gAend+ii]<4 && R[r1]<4) {
                             if ( R[r1]==G[gAend+ii] ) {
-                                Score+=int(Q[r1]);
+                                Score+=scoreMatch;
                                 nMatch++;
                             } else {//add -score and MM for all bases
-                                Score-=int(Q[r1]);
+                                Score-=scoreMatch;
                                 nMM++;
                             };
                         };
                     };
                 };
 
-                Score += Ins*P->scoreInsBase + P->scoreInsOpen;
+                if (P.alignInsertionFlush.flushRight) {
+                    for (; jR<(int)rBend-(int)rAend-(int)Ins; jR++ ){//flush the indel to the right as much as possible
+                        if (R[rAend+jR+1]!=G[gAend+jR+1] || G[gAend+jR+1]==4) {
+                            break;
+                        };
+                    };
+                    if (jR==(int)rBend-(int)rAend-(int)Ins) {//nothing left of the B-piece
+                        return -1000009;
+                    };
+                };
+                Score += Ins*P.scoreInsBase + P.scoreInsOpen;
                 jCan=-3;
             }; //different types of gaps selection
 
@@ -299,13 +305,13 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
 
         #else
             if ( (trA->nMM + nMM)<=outFilterMismatchNmaxTotal  \
-                         && ( jCan<0 || (jCan<7 && nMM<= (uint) P->alignSJstitchMismatchNmax[(jCan+1)/2]) ) )
+                         && ( jCan<0 || (jCan<7 && nMM<= (uint) P.alignSJstitchMismatchNmax[(jCan+1)/2]) ) )
         #endif
             {//stitching worked only if there no mis-matches for non-GT/AG junctions
                 trA->nMM += nMM;
                 trA->nMatch += nMatch;
 
-                if (Del>=P->alignIntronMin) {
+                if (Del>=P.alignIntronMin) {
                     trA->nGap += nDel;
                     trA->lGap += Del;
                 } else {
@@ -336,15 +342,15 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
             } else {//stitching was not accepted
                 return -1000007;
             };
-        } else if (gBstart+trA->exons[0][EX_R]+P->alignEndsProtrude.nBasesMax >= trA->exons[0][EX_G] || trA->exons[0][EX_G] < trA->exons[0][EX_R]){//if (iFragA==iFragB) stitch aligns from different fragments
+        } else if (gBstart+trA->exons[0][EX_R]+P.alignEndsProtrude.nBasesMax >= trA->exons[0][EX_G] || trA->exons[0][EX_G] < trA->exons[0][EX_R]){//if (iFragA==iFragB) stitch aligns from different fragments
                                                                                                             //CHECK: this second confdition does not make sense
-            if (P->alignMatesGapMax>0 && gBstart > trA->exons[trA->nExons-1][EX_G] + trA->exons[trA->nExons-1][EX_L] + P->alignMatesGapMax) {
+            if (P.alignMatesGapMax>0 && gBstart > trA->exons[trA->nExons-1][EX_G] + trA->exons[trA->nExons-1][EX_L] + P.alignMatesGapMax) {
                 return -1000004; //gap between mates too large
             };
             //extend the fragments inside
             //note, that this always works, i.e. Score>0
 
-            for (uint ii=rBstart;ii<rBstart+L;ii++) Score+=int(Q[ii]); //add QS for mapped portions
+            for (uint ii=rBstart;ii<rBstart+L;ii++) Score+=scoreMatch; //add QS for mapped portions
 
             Transcript trExtend;
 
@@ -358,8 +364,8 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
 
 
             trExtend.reset();
-            if ( extendAlign(R, Q, G, rAend+1, gAend+1, 1, 1, DEF_readSeqLengthMax, trA->nMatch, trA->nMM, outFilterMismatchNmaxTotal, P->outFilterMismatchNoverLmax, \
-                             P->alignEndsType.ext[trA->exons[trA->nExons-1][EX_iFrag]][1], &trExtend) ) {
+            if ( extendAlign(R, G, rAend+1, gAend+1, 1, 1, DEF_readSeqLengthMax, trA->nMatch, trA->nMM, outFilterMismatchNmaxTotal, P.outFilterMismatchNoverLmax, \
+                             P.alignEndsType.ext[trA->exons[trA->nExons-1][EX_iFrag]][1], &trExtend) ) {
 
                 trA->add(&trExtend);
                 Score += trExtend.maxScore;
@@ -373,11 +379,10 @@ intScore stitchAlignToTranscript(uint rAend, uint gAend, uint rBstart, uint gBst
             trA->nMatch += L;
 
             trExtend.reset();
-            //if ( extendAlign(R, Q, G, rBstart-1, gBstart-1, -1, -1, gBstart-trA->exons[0][EX_G]+trA->exons[0][EX_R], trA->nMatch, trA->nMM, outFilterMismatchNmaxTotal, P->outFilterMismatchNoverLmax,
             //if end extension needs to be forced, use large length. Otherwise, only extend until the beginning of the transcript
-            uint extlen=P->alignEndsType.ext[iFragB][1] ? DEF_readSeqLengthMax : gBstart-trA->exons[0][EX_G]+trA->exons[0][EX_R];
-            if ( extendAlign(R, Q, G, rBstart-1, gBstart-1, -1, -1, extlen, trA->nMatch, trA->nMM, outFilterMismatchNmaxTotal, P->outFilterMismatchNoverLmax, \
-                             P->alignEndsType.ext[iFragB][1], &trExtend) ) {
+            uint extlen=P.alignEndsType.ext[iFragB][1] ? DEF_readSeqLengthMax : gBstart-trA->exons[0][EX_G]+trA->exons[0][EX_R];
+            if ( extendAlign(R, G, rBstart-1, gBstart-1, -1, -1, extlen, trA->nMatch, trA->nMM, outFilterMismatchNmaxTotal, P.outFilterMismatchNoverLmax, \
+                             P.alignEndsType.ext[iFragB][1], &trExtend) ) {
 
                 trA->add(&trExtend);
                 Score += trExtend.maxScore;

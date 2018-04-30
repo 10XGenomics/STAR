@@ -8,6 +8,8 @@
 #include "TimeFunctions.h"
 #include <unistd.h>
 #include <signal.h>
+#include "ParametersChimeric.h"
+#include "ParametersGenome.h"
 
 class Parameters {
 
@@ -37,28 +39,16 @@ class Parameters {
         //input
         string inputBAMfile;
 
-        //genome, SA, ...
-        vector <uint> chrStart, chrLength, chrLengthAll;
-        string genomeDir,genomeLoad;
-        vector <string> genomeFastaFiles, genomeChainFiles;
-        uint genomeSAsparseD;//sparsity=distance between indices
-        uint genomeInsertL; //total length of the sequence to be inserted on the fly
-        uint genomeInsertChrIndFirst; //index of the first inserted chromosome
-        uint genomeSuffixLengthMax; //maximum length of the suffixes, has to be longer than read length
-        vector <uint> genomeFileSizes; //size of the genome files
-        string genomeConsensusFile;
-        
+        //genome
+        char genomeNumToNT[6];
+        ParametersGenome pGe;
+
         //binning,windows,anchors
-        uint genomeChrBinNbits, genomeChrBinNbases, chrBinN, *chrBin;
         uint winBinChrNbits, winBinNbits, winAnchorDistNbins, winFlankNbins, winBinN;
         uint winAnchorMultimapNmax; //max number of alignments for anchors
         double winReadCoverageRelativeMin;
         uint winReadCoverageBasesMin;
 
-        uint genomeSAindexNbases; //length of the SA pre-index strings
-        uint *genomeSAindexStart;//starts of the L-mer indices in the SAindex, 1<=L<=genomeSAindexNbases
-
-        char genomeNumToNT[6];
         //read parameters
         vector <string> readFilesType;
         int readFilesTypeN;
@@ -98,18 +88,22 @@ class Parameters {
         string alignSoftClipAtReferenceEnds;
         vector <int32> alignSJstitchMismatchNmax;
 
-        struct
-        {
+        struct {
             string in;
             bool ext[2][2];
         } alignEndsType;
 
-        struct
-        {
+        struct {
             vector<string> in;
             int nBasesMax;
             bool concordantPair;
         } alignEndsProtrude;
+        
+        struct {
+            string in;
+            bool flushRight;
+        } alignInsertionFlush;
+        
         
         //seed parameters
         uint seedMultimapNmax; //max number of multiple alignments per piece
@@ -137,12 +131,17 @@ class Parameters {
         uint outSAMmultNmax,outSAMattrIHstart;
         string outSAMheaderCommentFile;
         int outSAMmapqUnique;
-        struct {bool NH,HI,AS,NM,MD,nM,jM,jI,RG,XS,ch,MC;} outSAMattrPresent, outSAMattrPresentQuant;
+
+        int outSAMtlen;
+        
+        struct {bool NH,HI,AS,NM,MD,nM,jM,jI,RG,XS,rB,vG,vA,vW,ch,MC;} outSAMattrPresent, outSAMattrPresentQuant;
+
         vector <int> outSAMattrOrder, outSAMattrOrderQuant;
         int outBAMcompression;
         vector <string> outSAMtype;
         bool outBAMunsorted, outBAMcoord, outSAMbool;
         uint32 outBAMcoordNbins;
+        uint32 outBAMsortingBinsN;//user-defined number of bins for sorting
         string outBAMsortTmpDir;
         
 //         string bamRemoveDuplicatesType;
@@ -180,6 +179,13 @@ class Parameters {
             string mode;
             bool random;
         } outMultimapperOrder;
+        
+        struct
+        {
+            bool yes;
+            uint NbasesMin;
+            double MMp;
+        } peOverlap;
 
         string outReadsUnmapped;
         int outQSconversionAdd;
@@ -232,7 +238,6 @@ class Parameters {
             bool yes; //insert?
             bool pass1;//insert on the 1st pass?
             bool pass2;//insert on the 2nd pass?
-            string save;
             string outDir;
         } sjdbInsert;
 
@@ -261,24 +266,11 @@ class Parameters {
         int annotScoreScale;//overall multiplication factor for the annotation
         string annotSignalFile;//binary file with annotation signal
 
-        //SJ database parameters
-        vector <string> sjdbFileChrStartEnd;
-        string sjdbGTFfile, sjdbGTFchrPrefix, sjdbGTFfeatureExon, sjdbGTFtagExonParentTranscript, sjdbGTFtagExonParentGene;
-        uint sjdbOverhang,sjdbLength; //length of the donor/acceptor, length of the sj "chromosome" =2*sjdbOverhang+1 including spacer
-        int sjdbOverhang_par;
-        int sjdbScore;
-
-        uint sjChrStart,sjdbN; //first sj-db chr
-        uint sjGstart; //start of the sj-db genome sequence
-        uint *sjDstart,*sjAstart,*sjStr, *sjdbStart, *sjdbEnd; //sjdb loci
-        uint8 *sjdbMotif; //motifs of annotated junctions
-        uint8 *sjdbShiftLeft, *sjdbShiftRight; //shifts of junctions
-        uint8 *sjdbStrand; //junctions strand, not used yet
-
-        uint sjNovelN, *sjNovelStart, *sjNovelEnd; //novel junctions collapased and filtered
-
+        uint sjNovelN, *sjNovelStart, *sjNovelEnd; //novel junctions collapased and filtered        
+        
+        
         //quantification parameters
-            //input
+        //input
 
         struct
         {
@@ -302,27 +294,24 @@ class Parameters {
           } geCount;
 
         } quant;
-
-        //chimeric
-        uint chimSegmentMin, chimJunctionOverhangMin; //min chimeric donor/acceptor length
-        uint chimSegmentReadGapMax; //max read gap for stitching chimeric windows
-        int chimScoreMin,chimScoreDropMax,chimScoreSeparation, chimScoreJunctionNonGTAG; //min chimeric score
-        uint chimMainSegmentMultNmax;
-        vector <string> chimFilter;
-
+       
+        //variation parameters
         struct
         {
-            struct
-            {
-                bool genomicN;
-            } filter;
-            struct
-            {
-                vector <string> type;
-                bool bam;
-                bool bamHardClip;
-            } out;
-        } chim;
+            bool yes;
+            string vcfFile;
+        } var;
+        
+        struct
+        {
+            bool yes;
+            bool SAMtag;
+            string outputMode;
+        } wasp;
+
+        //chimeric
+        ParametersChimeric pCh;
+
 
         //splitting
         char Qsplit;
@@ -336,20 +325,7 @@ class Parameters {
 
     uint Lread;
 
-    //Genome parameters
-    uint nGenome, nSA, nSAbyte, nChrReal;//genome length, SA length, # of chromosomes, vector of chromosome start loci
-    uint nGenome2, nSA2, nSAbyte2, nChrReal2; //same for the 2nd pass
-    uint nSAi; //size of the SAindex
-    vector <string> chrName, chrNameAll;
-    map <string,uint> chrNameIndex;
-    unsigned char GstrandBit, SAiMarkNbit, SAiMarkAbsentBit; //SA index bit for strand information
-    uint GstrandMask, SAiMarkAbsentMask, SAiMarkAbsentMaskC, SAiMarkNmask, SAiMarkNmaskC;//maske to remove strand bit from SA index, to remove mark from SAi index
-
-
-
     Parameters();
-    void chrInfoLoad(); //find nChr and chrStart from genome
-    void chrBinFill();//file chrBin array
     int readParsFromFile(ifstream*, ofstream*, int); //read parameters from one file
     int readPars(); // read parameters from all files
     int scanOneLine (string &lineIn, int inputLevel, int inputLevelRequested);
