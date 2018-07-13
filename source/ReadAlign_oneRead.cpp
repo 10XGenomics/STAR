@@ -91,6 +91,7 @@ int ReadAlign::oneRead() {//process one read: load, map, write
 
     //write out alignments
     outputAlignments();
+    outSAMstring = ((ostringstream*)outSAMstream)->str();
 
     return 0;
 

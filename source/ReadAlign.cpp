@@ -110,7 +110,27 @@ ReadAlign::ReadAlign (Parameters& Pin, Genome &genomeIn, Transcriptome *TrIn, in
     chunkOutChimJunction = new fstream;
     chimDet= new ChimericDetection(P, trAll, nWinTr, Read1, mapGen, chunkOutChimJunction, this);
 
+    chunkOutSJ=new OutSJ (P.limitOutSJcollapsed, P, mapGen);
+    chunkOutSJ1=new OutSJ (P.limitOutSJcollapsed, P, mapGen);
 };
+
+// For use in API mode. Pass in read1 and read2 strings & map with
+// the current STAR parameters. Returns the alignments in SAM format
+// in 0-terminated string. Returned memory is owned by the caller.
+const char* ReadAlign::alignReadPair(char* read1, char* read2) {
+    // FIXME - this should be a smart pointer?
+    readInStream[0] = new istringstream(read1);
+
+    if (read2) {
+        readInStream[1] = new istringstream(read2);
+    }
+
+    auto outStream = new ostringstream();
+    outSAMstream = outStream;
+    oneRead();
+    outSAMstring = ((ostringstream*) outSAMstream)->str();
+    return outSAMstring.c_str();
+}
 
 void ReadAlign::resetN () {//reset resets the counters to 0 for a new read
     mapMarker=0;

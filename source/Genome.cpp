@@ -91,6 +91,7 @@ void Genome::genomeLoad(){//allocate and load Genome
     uint L=200,K=6;
 
     Parameters P1;
+    P1.init();
     
     //some initializations before reading the parameters
     GstrandBit=0;

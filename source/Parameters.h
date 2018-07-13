@@ -128,9 +128,9 @@ class Parameters {
         string outSAMmode, outSAMstrandField,  outSAMorder, outSAMprimaryFlag;
         vector<string> outSAMattributes, outSAMheaderHD, outSAMheaderPG;
         vector<string> outSAMattrRGline,outSAMattrRGlineSplit,outSAMattrRG;
-        uint outSAMmultNmax,outSAMattrIHstart;
+        uint outSAMattrIHstart;
         string outSAMheaderCommentFile;
-        int outSAMmapqUnique;
+        int outSAMmultNmax, outSAMmapqUnique;
 
         int outSAMtlen;
         
@@ -326,6 +326,7 @@ class Parameters {
     uint Lread;
 
     Parameters();
+    void init();
     int readParsFromFile(ifstream*, ofstream*, int); //read parameters from one file
     int readPars(); // read parameters from all files
     int scanOneLine (string &lineIn, int inputLevel, int inputLevelRequested);

@@ -99,7 +99,7 @@ void ReadAlign::outputAlignments() {
                 exitWithError(errOut.str(), std::cerr, P.inOut->logMain, EXIT_CODE_BUG, P);
             };
 
-            nTrOut=min(P.outSAMmultNmax,nTrOut); //number of to write to SAM/BAM files
+            nTrOut=min((uint)P.outSAMmultNmax,nTrOut); //number of to write to SAM/BAM files
 
             for (uint iTr=0;iTr<nTrOut;iTr++)
             {//write all transcripts

@@ -18,7 +18,9 @@
 Parameters::Parameters() {//initalize parameters info
 
     inOut = new InOutStreams;
+}
 
+void Parameters::init() {
     //versions
     parArray.push_back(new ParameterInfoScalar <uint> (-1, -1, "versionSTAR", &versionSTAR));
     parArray.push_back(new ParameterInfoVector <uint> (-1, -1, "versionGenome", &versionGenome));
@@ -104,7 +106,7 @@ Parameters::Parameters() {//initalize parameters info
     parArray.push_back(new ParameterInfoScalar <int>        (-1, -1, "outBAMsortingThreadN", &outBAMsortingThreadN));
     parArray.push_back(new ParameterInfoScalar <uint32>        (-1, -1, "outBAMsortingBinsN", &outBAMsortingBinsN));
     parArray.push_back(new ParameterInfoVector <string>     (-1, -1, "outSAMfilter", &outSAMfilter.mode));
-    parArray.push_back(new ParameterInfoScalar <uint>     (-1, -1, "outSAMmultNmax", &outSAMmultNmax));
+    parArray.push_back(new ParameterInfoScalar <int>      (-1, -1, "outSAMmultNmax", &outSAMmultNmax));
     parArray.push_back(new ParameterInfoScalar <uint>     (-1, -1, "outSAMattrIHstart", &outSAMattrIHstart));
     parArray.push_back(new ParameterInfoScalar <int>        (-1, -1, "outSAMtlen", &outSAMtlen));
 
@@ -262,17 +264,13 @@ Parameters::Parameters() {//initalize parameters info
 
 void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters: default, from files, from command line
 
+    init();
 ///////// Default parameters
 
-    cerr << "prep defaults\n";
     #include "parametersDefault.xxd"
     string parString( (const char*) parametersDefault,parametersDefault_len);
     stringstream parStream (parString);
 
-    cerr << parString;
-    cerr << "\n\n";
-
-    cerr << "scan defaults\n";
     scanAllLines(parStream, 0, -1);
     for (uint ii=0; ii<parArray.size(); ii++) {
         if (parArray[ii]->inputLevel<0) {
@@ -284,7 +282,6 @@ void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters
 
 ///////// Initial parameters from Command Line
 
-    cerr << "scan params";
     commandLine="";
     string commandLineFile="";
 
@@ -367,7 +364,7 @@ void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters
             inOut->logMain << setw(PAR_NAME_PRINT_WIDTH) << parArray[ii]->nameString <<"    "<< *(parArray[ii]) << endl;
         };
     };
-
+    
 ///////// Parameters files
 
     if (parametersFiles.at(0) != "-") {//read parameters from a user-defined file
@@ -543,7 +540,7 @@ void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters
             exitWithError(errOut.str(),std::cerr, inOut->logMain, EXIT_CODE_PARAMETER, *this);        
     };    
     
-    if (runMode=="alignReads") {
+    if (runMode=="alignReads" | runMode=="api") {
         inOut->logProgress.open((outFileNamePrefix + "Log.progress.out").c_str());
     } else if (runMode=="inputAlignmentsFromBAM") {
         //at the moment, only wiggle output is implemented
@@ -572,7 +569,7 @@ void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters
     outSAMbool=false;
     outBAMunsorted=false;
     outBAMcoord=false;
-    if (runMode=="alignReads" && outSAMmode != "None") {//open SAM file and write header
+    if ((runMode=="alignReads" | runMode=="api") && outSAMmode != "None") {//open SAM file and write header
         if (outSAMtype.at(0)=="BAM") {
             if (outSAMtype.size()<2) {
                 ostringstream errOut;
@@ -1033,6 +1030,12 @@ void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters
         inOut->logMain << "WARNING --waspOutputMode is set, therefore STAR will output vW attribute" <<endl;
     };    
     
+    // Don't rely on overflow of -1 to set
+    // a large value of outSAMmultNmax
+    if (outSAMmultNmax == -1) {
+        outSAMmultNmax = 1<<20;
+    }
+
     //chimeric
     pCh.out.bam=false;
     pCh.out.junctions=false;

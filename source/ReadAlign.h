@@ -21,6 +21,7 @@ class ReadAlign
          //methods
         ReadAlign (Parameters& Pin, Genome &genomeIn, Transcriptome *TrIn, int iChunk);//allocate arrays
         int oneRead();
+        const char* alignReadPair(char* read1, char* read2);
         
         //vars
 
@@ -36,7 +37,9 @@ class ReadAlign
         fstream chunkOutChimSAM, *chunkOutChimJunction, chunkOutUnmappedReadsStream[MAX_N_MATES], chunkOutFilterBySJoutFiles[MAX_N_MATES];
         OutSJ *chunkOutSJ, *chunkOutSJ1;
 
-        ostream* outSAMstream;        
+        ostream* outSAMstream;
+        string outSAMstring;
+
         uint outBAMbytes; //number of bytes output to SAM/BAM with oneRead
         char *outBAMarray;//pointer to the (last+1) position of the SAM/BAM output array
         

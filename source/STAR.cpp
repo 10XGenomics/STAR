@@ -46,6 +46,85 @@ void usage() {
     exit(0);
 }
 
+void createSamHeaders(Parameters& P, Genome& mainGenome) {
+
+    //open SAM/BAM files for output
+    if (P.outSAMmode != "None") {//open SAM file and write header
+        ostringstream samHeaderStream;
+
+        for (uint ii=0;ii<mainGenome.nChrReal;ii++) {
+            samHeaderStream << "@SQ\tSN:"<< mainGenome.chrName.at(ii) <<"\tLN:"<<mainGenome.chrLength[ii]<<"\n";
+        };
+
+        mainGenome.chrNameAll=mainGenome.chrName;
+        mainGenome.chrLengthAll=mainGenome.chrLength;
+        {//add exra references
+            ifstream extrastream (P.pGe.gDir + "/extraReferences.txt");
+            while (extrastream.good()) {
+                string line1;
+                getline(extrastream,line1);
+                istringstream stream1 (line1);
+                string field1;
+                stream1 >> field1;//should check for @SQ
+
+                if (field1!="") {//skip blank lines
+                    samHeaderStream << line1 <<"\n";
+
+                    stream1 >> field1;
+                    mainGenome.chrNameAll.push_back(field1.substr(3));
+                    stream1 >> field1;
+                    mainGenome.chrLengthAll.push_back((uint) stoll(field1.substr(3)));
+                };
+            };
+            extrastream.close();
+        };
+        
+        if (P.outSAMheaderPG.at(0)!="-") {
+            samHeaderStream << P.outSAMheaderPG.at(0);
+            for (uint ii=1;ii<P.outSAMheaderPG.size(); ii++) {
+                samHeaderStream << "\t" << P.outSAMheaderPG.at(ii);
+            };
+            samHeaderStream << "\n";
+        };
+
+        samHeaderStream << "@PG\tID:STAR\tPN:STAR\tVN:" << STAR_VERSION <<"\tCL:" << P.commandLineFull <<"\n";
+
+        if (P.outSAMheaderCommentFile!="-") {
+            ifstream comstream (P.outSAMheaderCommentFile);
+            while (comstream.good()) {
+                string line1;
+                getline(comstream,line1);
+                if (line1.find_first_not_of(" \t\n\v\f\r")!=std::string::npos) {//skip blank lines
+                    samHeaderStream << line1 <<"\n";
+                };
+            };
+            comstream.close();
+        };
+
+
+        for (uint32 ii=0;ii<P.outSAMattrRGlineSplit.size();ii++) {//@RG lines
+            samHeaderStream << "@RG\t" << P.outSAMattrRGlineSplit.at(ii) <<"\n";
+        };
+
+
+        samHeaderStream <<  "@CO\t" <<"user command line: " << P.commandLine <<"\n";
+        
+        samHeaderStream << P.samHeaderExtra;
+
+        if (P.outSAMheaderHD.at(0)!="-") {
+            P.samHeaderHD = P.outSAMheaderHD.at(0);
+            for (uint ii=1;ii<P.outSAMheaderHD.size(); ii++) {
+                P.samHeaderHD +="\t" + P.outSAMheaderHD.at(ii);
+            };
+        } else {
+            P.samHeaderHD = "@HD\tVN:1.4";
+        };
+
+        P.samHeader=P.samHeaderHD+"\n"+samHeaderStream.str();
+        //for the sorted BAM, need to add SO:cooridnate to the header line
+        P.samHeaderSortedCoord=P.samHeaderHD + (P.outSAMheaderHD.size()==0 ? "" : "\tSO:coordinate") + "\n" + samHeaderStream.str();
+    }
+}
 
 int main(int argInN, char* argIn[]) {
     // If no argument is given, or the first argument is either '-h' or '--help', run usage()
@@ -204,80 +283,7 @@ int main(int argInN, char* argIn[]) {
 
     //open SAM/BAM files for output
     if (P.outSAMmode != "None") {//open SAM file and write header
-        ostringstream samHeaderStream;
-
-        for (uint ii=0;ii<mainGenome.nChrReal;ii++) {
-            samHeaderStream << "@SQ\tSN:"<< mainGenome.chrName.at(ii) <<"\tLN:"<<mainGenome.chrLength[ii]<<"\n";
-        };
-
-        mainGenome.chrNameAll=mainGenome.chrName;
-        mainGenome.chrLengthAll=mainGenome.chrLength;
-        {//add exra references
-            ifstream extrastream (P.pGe.gDir + "/extraReferences.txt");
-            while (extrastream.good()) {
-                string line1;
-                getline(extrastream,line1);
-                istringstream stream1 (line1);
-                string field1;
-                stream1 >> field1;//should check for @SQ
-
-                if (field1!="") {//skip blank lines
-                    samHeaderStream << line1 <<"\n";
-
-                    stream1 >> field1;
-                    mainGenome.chrNameAll.push_back(field1.substr(3));
-                    stream1 >> field1;
-                    mainGenome.chrLengthAll.push_back((uint) stoll(field1.substr(3)));
-                };
-            };
-            extrastream.close();
-        };
-        
-        if (P.outSAMheaderPG.at(0)!="-") {
-            samHeaderStream << P.outSAMheaderPG.at(0);
-            for (uint ii=1;ii<P.outSAMheaderPG.size(); ii++) {
-                samHeaderStream << "\t" << P.outSAMheaderPG.at(ii);
-            };
-            samHeaderStream << "\n";
-        };
-
-        samHeaderStream << "@PG\tID:STAR\tPN:STAR\tVN:" << STAR_VERSION <<"\tCL:" << P.commandLineFull <<"\n";
-
-        if (P.outSAMheaderCommentFile!="-") {
-            ifstream comstream (P.outSAMheaderCommentFile);
-            while (comstream.good()) {
-                string line1;
-                getline(comstream,line1);
-                if (line1.find_first_not_of(" \t\n\v\f\r")!=std::string::npos) {//skip blank lines
-                    samHeaderStream << line1 <<"\n";
-                };
-            };
-            comstream.close();
-        };
-
-
-        for (uint32 ii=0;ii<P.outSAMattrRGlineSplit.size();ii++) {//@RG lines
-            samHeaderStream << "@RG\t" << P.outSAMattrRGlineSplit.at(ii) <<"\n";
-        };
-
-
-        samHeaderStream <<  "@CO\t" <<"user command line: " << P.commandLine <<"\n";
-        
-        samHeaderStream << P.samHeaderExtra;
-
-        if (P.outSAMheaderHD.at(0)!="-") {
-            P.samHeaderHD = P.outSAMheaderHD.at(0);
-            for (uint ii=1;ii<P.outSAMheaderHD.size(); ii++) {
-                P.samHeaderHD +="\t" + P.outSAMheaderHD.at(ii);
-            };
-        } else {
-            P.samHeaderHD = "@HD\tVN:1.4";
-        };
-
-
-        P.samHeader=P.samHeaderHD+"\n"+samHeaderStream.str();
-        //for the sorted BAM, need to add SO:cooridnate to the header line
-        P.samHeaderSortedCoord=P.samHeaderHD + (P.outSAMheaderHD.size()==0 ? "" : "\tSO:coordinate") + "\n" + samHeaderStream.str();
+        createSamHeaders(P, mainGenome);
 
         if (P.outSAMbool) {//
             *P.inOut->outSAM << P.samHeader;
@@ -290,6 +296,7 @@ int main(int argInN, char* argIn[]) {
 //             };
 
         if ( P.quant.trSAM.yes ) {
+            ostringstream samHeaderStream;
             samHeaderStream.str("");
             vector <uint> trlength;
             for (uint32 ii=0;ii<mainTranscriptome->trID.size();ii++) {

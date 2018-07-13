@@ -5,7 +5,7 @@ int Transcript::variationAdjust(const Genome &mapGen, char *R)
 {
     Variation &Var=*mapGen.Var;
     
-    if (!Var.yes)
+    if (mapGen.Var == NULL || !Var.yes) 
     {//no variation
         return 0;
     };

@@ -3,6 +3,7 @@
 # CPPFLAGS
 # CXXFLAGS
 # CFLAGS
+UNAME := $(shell uname)
 
 # or these user-set flags that will be added to standard flags
 LDFLAGSextra ?=
@@ -20,8 +21,12 @@ LDFLAGS_gdb := $(LDFLAGS_shared)
 
 COMPTIMEPLACE := -D'COMPILATION_TIME_PLACE="$(shell echo `date` $(HOSTNAME):`pwd`)"'
 
-CXXFLAGS_common := -D'COMPILE_FOR_MAC' -pipe -std=c++11 -Wall -Wextra  $(COMPTIMEPLACE)
-CXXFLAGS_main := -Og $(CXXFLAGS_common)
+CXXFLAGS_common := -pipe -std=c++11 -Wall -Wextra  $(COMPTIMEPLACE)
+ifeq ($(UNAME), Darwin)
+	CXXFLAGS_common += -D'COMPILE_FOR_MAC'
+endif
+
+CXXFLAGS_main := -O0 -g $(CXXFLAGS_common)
 CXXFLAGS_gdb :=  -O0 -g $(CXXFLAGS_common)
 
 CFLAGS := -O3 -pipe -Wall -Wextra $(CFLAGS)
@@ -43,7 +48,7 @@ OBJECTS = SharedMemory.o PackedArray.o SuffixArrayFuns.o STAR.o Parameters.o InO
         ReadAlign_peOverlapMergeMap.o ReadAlign_mappedFilter.o \
         ReadAlign_chimericDetection.o ReadAlign_chimericDetectionOld.o ReadAlign_chimericDetectionOldOutput.o\
         ChimericDetection.o ChimericDetection_chimericDetectionMult.o ReadAlign_chimericDetectionPEmerged.o \
-        ChimericSegment.cpp ChimericAlign.cpp ChimericAlign_chimericJunctionOutput.o ChimericAlign_chimericStitching.o \
+        ChimericSegment.o ChimericAlign.o ChimericAlign_chimericJunctionOutput.o ChimericAlign_chimericStitching.o \
         stitchWindowAligns.o extendAlign.o stitchAlignToTranscript.o alignSmithWaterman.o \
         Genome_genomeGenerate.o genomeParametersWrite.o genomeScanFastaFiles.o genomeSAindex.o \
         Genome_insertSequences.o insertSeqSA.o funCompareUintAndSuffixes.o funCompareUintAndSuffixesMemcmp.o \

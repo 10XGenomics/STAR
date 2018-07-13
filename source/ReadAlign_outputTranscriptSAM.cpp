@@ -62,7 +62,6 @@ uint ReadAlign::outputTranscriptSAM(Transcript const &trOut, uint nTrOut, uint i
 
 
     bool flagPaired = P.readNmates==2;
-    string CIGAR;
 
     //for SAM output need to split mates
     uint iExMate; //last exon of the first mate
@@ -132,11 +131,11 @@ uint ReadAlign::outputTranscriptSAM(Transcript const &trOut, uint nTrOut, uint i
         //not primary align?
         if (!trOut.primaryFlag) samFLAG|=0x100;
 
-        //empty streams
-        samStreamCIGAR.str(std::string());
-        samStreamSJmotif.str(std::string());
-        samStreamSJintron.str(std::string());
-//         samStreamSJannot.str(std::string());
+        // empty streams
+        ostringstream samStreamCIGAR;
+        samStreamSJmotif.str("");
+        samStreamSJintron.str("");
+        // samStreamSJannot.str(std::string());
 
         uint trimL;
         if (Str==0 && Mate==0) {
@@ -194,8 +193,8 @@ uint ReadAlign::outputTranscriptSAM(Transcript const &trOut, uint nTrOut, uint i
         if ( trimR1 > 0 ) {
             samStreamCIGAR << trimR1 << "S"; //final trimming
         };
-        CIGAR=samStreamCIGAR.str();
 
+        string CIGAR = samStreamCIGAR.str();
 
         char seqMate[DEF_readSeqLengthMax+1], qualMate[DEF_readSeqLengthMax+1];
         char *seqOut=NULL, *qualOut=NULL;

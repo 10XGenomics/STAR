@@ -156,7 +156,7 @@ typedef uint8_t uint8;
 #define MAX_N_FRAG 2
 #define MARK_FRAG_SPACER_BASE 11
 #define MAX_N_CHIMERAS 5
-#define MAX_N_MULTMAP 100000 //max number of multiple mappers
+#define MAX_N_MULTMAP 10000 //max number of multiple mappers
 #define MAX_SJ_REPEAT_SEARCH 255 //max length of a repeat to search around a SJ
 #define MAX_QS_VALUE 60
 #define MAX_OUTPUT_FLAG 10
