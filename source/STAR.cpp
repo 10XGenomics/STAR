@@ -126,7 +126,13 @@ void createSamHeaders(Parameters& P, Genome& mainGenome) {
     }
 }
 
-int main(int argInN, char* argIn[]) {
+const char* getSamHeaders(Parameters& P, Genome& mainGenome) {
+    createSamHeaders(P, mainGenome);
+    return P.samHeader.c_str();
+}
+
+
+int _main(int argInN, char* argIn[]) {
     // If no argument is given, or the first argument is either '-h' or '--help', run usage()
     if((argInN == 1) || (argInN == 2 && (strcmp("-h",argIn[1]) == 0 || strcmp ("--help",argIn[1]) == 0 ))) {
         usage();
