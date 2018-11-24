@@ -81,6 +81,8 @@ uint Genome::OpenStream(string name, ifstream & stream, uint size)
 
 void Genome::genomeLoad(){//allocate and load Genome
 
+    Var=new Variation(P, chrStart, chrNameIndex);
+
     time_t rawtime;
     time ( &rawtime );
     *(P.inOut->logStdOut) << timeMonthDayTime(rawtime) << " ..... loading genome\n" <<flush;
