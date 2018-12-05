@@ -70,7 +70,14 @@ uint ReadAlign::maxMappableLength2strands(uint pieceStartIn, uint pieceLengthIn,
             maxL=compareSeqToGenome(Read1,pieceStart, pieceLength, Lind, G, SA, iSA1, dirR, comparRes, P);
         } else {//SA search, pieceLength>maxL
         if ( (iSA1 & P->SAiMarkNmaskC)==0 ) {//no N in the prefix
-                maxL=Lind - 1; // There can be a suffix "N" base between this prefix and the next highest
+                // iSA2 can now point to a suffix with multiple "N" bases, eg. this sort order 
+                // ACTGAAAA <- iSA1
+                // ACTGNNNN <- iSA2
+                // ACTTACTG <- next prefix
+                // As a result, we can only assume the match length is as good up to 
+                // the length that iSA2 hits, and need to compare everything past that length in the binary search
+                bool cres;
+                maxL=compareSeqToGenome(Read1,pieceStart, pieceLength, 0, G, SA, iSA2, dirR, cres, P);
             } else {
                 maxL=0;
             };
