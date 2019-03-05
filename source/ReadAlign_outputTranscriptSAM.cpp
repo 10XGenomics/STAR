@@ -165,10 +165,10 @@ uint ReadAlign::outputTranscriptSAM(Transcript const &trOut, uint nTrOut, uint i
                 if (trOut.canonSJ[ii-1]>=0 || trOut.sjAnnot[ii-1]==1) {//junction: N
                     samStreamCIGAR << gapG;
                     samStreamCIGAR << "N";
-                    samStreamSJmotif <<','<< trOut.canonSJ[ii-1] + (trOut.sjAnnot[ii-1]==0 ? 0 : SJ_SAM_AnnotatedMotifShift); //record junction type
+                    // samStreamSJmotif <<','<< trOut.canonSJ[ii-1] + (trOut.sjAnnot[ii-1]==0 ? 0 : SJ_SAM_AnnotatedMotifShift); //record junction type
 //                     samStreamSJannot <<','<< (int) trOut.sjAnnot[ii-1]; //record annotation type
-                    samStreamSJintron <<','<< trOut.exons[ii-1][EX_G] + trOut.exons[ii-1][EX_L] + 1 - mapGen.chrStart[trOut.Chr] <<','\
-                                   << trOut.exons[ii][EX_G] - mapGen.chrStart[trOut.Chr]; //record intron loci
+                    //samStreamSJintron <<','<< trOut.exons[ii-1][EX_G] + trOut.exons[ii-1][EX_L] + 1 - mapGen.chrStart[trOut.Chr] <<','\
+                    //               << trOut.exons[ii][EX_G] - mapGen.chrStart[trOut.Chr]; //record intron loci
                 } else if (gapG>0) {//deletion: N
                     samStreamCIGAR << gapG;
                     samStreamCIGAR << "D";
