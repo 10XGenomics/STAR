@@ -11,3 +11,4 @@ doc/*.toc
 
 # Don't track the STAR binary once it has being built
 source/STAR
+source/*.a
