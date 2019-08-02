@@ -26,8 +26,8 @@ ifeq ($(UNAME), Darwin)
 	CXXFLAGS_common += -D'COMPILE_FOR_MAC'
 endif
 
-CXXFLAGS_main := -O0 -g $(CXXFLAGS_common)
-CXXFLAGS_gdb :=  -O0 -g $(CXXFLAGS_common)
+CXXFLAGS_main := -O3 -g $(CXXFLAGS_common)
+CXXFLAGS_gdb :=  -O3 -g $(CXXFLAGS_common)
 
 CFLAGS := -O3 -pipe -Wall -Wextra $(CFLAGS)
 
