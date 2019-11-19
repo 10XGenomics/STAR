@@ -263,6 +263,18 @@ Parameters::Parameters() {//initalize parameters info
 
 };
 
+Parameters::~Parameters() {
+    // TODO cleanup sjNovel*? clip3pAdapterSeqNum?
+    for (auto *p : parArray) {
+        if (p != nullptr) {
+            delete p;
+        }
+    }
+    if (inOut != nullptr) {
+        delete inOut;
+    }
+}
+
 
 void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters: default, from files, from command line
 
@@ -870,8 +882,8 @@ void Parameters::inputParameters (int argInN, char* argIn[]) {//input parameters
         errOut <<"SOLUTION: re-run STAR with larger --limitIObufferSize or smaller --limitOutSJcollapsed\n";
         exitWithError(errOut.str(), std::cerr, inOut->logMain, EXIT_CODE_PARAMETER, *this);
     };
-    chunkInSizeBytesArray=(uint) int((limitIObufferSize-limitOutSJcollapsed*Junction::dataSize)*BUFFER_InSizeFraction)/2;
-    chunkOutBAMsizeBytes= (uint) int((1.0/BUFFER_InSizeFraction-1.0)*chunkInSizeBytesArray*2.0);
+    chunkInSizeBytesArray=(uint) ((int64_t)((limitIObufferSize-limitOutSJcollapsed*Junction::dataSize)*BUFFER_InSizeFraction)/2);
+    chunkOutBAMsizeBytes= (uint) ((int64_t)((1.0/BUFFER_InSizeFraction-1.0)*chunkInSizeBytesArray*2.0));
     chunkInSizeBytes=chunkInSizeBytesArray-2*(DEF_readSeqLengthMax+1)-2*DEF_readNameLengthMax;//to prevent overflow
 
     //basic trimming
