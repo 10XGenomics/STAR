@@ -14,4 +14,4 @@ git:
 before_script:
   - cd source
 script:
-  - make STAR
+  - make liborbit.a
